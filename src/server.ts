@@ -1,10 +1,12 @@
-import express, { Response } from "express";
+import express, { query, Response } from "express";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import * as url from "url";
 
+
 let app = express();
 app.use(express.json());
+app.use(express.static("public"));
 
 // create database "connection"
 // use absolute path to avoid this issue
@@ -25,8 +27,8 @@ await db.get("PRAGMA foreign_keys = ON");
 // but the primary key should be unique
 //
 
-// insert example
-await db.run(
+//insert example
+/*await db.run(
     "INSERT INTO authors(id, name, bio) VALUES('1', 'Figginsworth III', 'A traveling gentleman.')"
 );
 await db.run(
@@ -40,7 +42,8 @@ let statement = await db.prepare(
     "INSERT INTO books(id, author_id, title, pub_year, genre) VALUES (?, ?, ?, ?, ?)"
 );
 await statement.bind(["2", "1", "A Travelogue of Tales", "1867", "adventure"]);
-await statement.run();
+await statement.run();*/
+
 
 // select examples
 /*let authors = await db.all("SELECT * FROM authors");
@@ -97,9 +100,33 @@ app.delete("/foo", (req, res) => {
     res.sendStatus(200);
 });
 
+app.get("/setup", async (req, res) =>{
+    console.log("Setting up");
+    await db.all(
+        "INSERT INTO authors(id, name, bio) VALUES('1', 'Figginsworth III', 'A traveling gentleman.')"
+    );
+    await db.all(
+        "INSERT INTO books(id, author_id, title, pub_year, genre) VALUES ('1', '1', 'My Fairest Lady', '1866', 'romance')"
+    );
+    let statement = await db.prepare(
+        "INSERT INTO books(id, author_id, title, pub_year, genre) VALUES (?, ?, ?, ?, ?)"
+    );
+    await statement.bind(["2", "1", "A Travelogue of Tales", "1867", "adventure"]);
+    await statement.run();
+
+    return res.sendStatus(200);
+
+})
+
+//
+//
+// GET REQUESTS
+//
+//
+
 app.get("/all", async (req, res) => {
     console.log("Waiting...");
-    await sleep(3000);
+    await sleep(1);
     let authors = await db.all("SELECT * FROM authors");
     console.log("Authors", authors);
     let books = await db.all("SELECT * FROM books WHERE author_id = '1'");
@@ -110,22 +137,80 @@ app.get("/all", async (req, res) => {
 
 });
 
-app.get("/book", async (req, res: BookResponse) => {
-    if (!req.body.id){
+app.get("/authors/all", async (req, res) => {
+    console.log("Waiting...");
+    await sleep(1);
+    let author = await db.all("SELECT * FROM authors");
+    console.log("Authors", author);
+
+    return res.json(author);
+    //return res.sendStatus(200);
+
+});
+
+app.get("/books/all", async (req, res) => {
+    console.log("Waiting...");
+    await sleep(1);
+    let books = await db.all("SELECT * FROM books");
+    console.log("Books", books[1]);
+    console.log("Books size: ", books.length)
+
+    return res.json(books);
+    //return res.sendStatus(200);
+
+});
+
+app.get("/book/id", async (req, res) => {
+    if (!req.query.id){
         return res.status(400).json({ error: "Body is missing sections" });
     }
 
-    let id = req.body.id;
+    let id = req.query.id;
+    console.log(id);
 
-    let statement = await db.prepare(
-        "SELECT FROM books WHERE id = (?)"
+    let book = await db.all(
+        "SELECT * FROM books WHERE id = ?", id
     );
-    await statement.bind([id]);
-    await statement.run();
+    //await book.bind([id]);
+    //await book.run();
     console.log("Sent a book");
-    return res.sendStatus(200);
+    console.log(book)
+
+    return res.json(book)
+    //return res.sendStatus(200);
 
 });
+
+app.get("/books/genre", async (req, res) => {
+    if (!req.query.genre){
+        return res.status(400).json({ error: "Body is missing sections" });
+    }
+
+    let genre = req.query.genre;
+    console.log(genre);
+
+    let book = await db.all(
+        "SELECT * FROM books WHERE genre = ?", genre
+    ).catch(error =>{
+        console.log(error.errno);
+        //let send = {"message": error.response.data.message};
+        res.status(400);
+    });
+    console.log("Sent a book");
+    console.log(book);
+
+    return res.json(book)
+    //return res.sendStatus(200);
+
+});
+
+
+//
+//
+// POST REQUESTS
+//
+//
+
 
 //This is just checking the value are there at the moment, make more advanced next
 app.post("/add/book",async (req, res) => {
@@ -139,13 +224,18 @@ app.post("/add/book",async (req, res) => {
     let pub_year = req.body.pub_year;
     let genre = req.body.genre;
     
-
+    console.log(req.body);
 
     let statement = await db.prepare(
         "INSERT INTO books(id, author_id, title, pub_year, genre) VALUES (?, ?, ?, ?, ?)"
     );
     await statement.bind([id, author_id, title, pub_year, genre]);
-    await statement.run();
+    await statement.run().catch(error =>{
+        console.log(error.errno);
+        //let send = {"message": error.response.data.message};
+        res.status(400);
+    });
+    
 
     //console.log(title);
     console.log("Added a book");
@@ -162,6 +252,9 @@ app.post("/add/author", async (req, res) => {
     let name = req.body.name;
     let bio = req.body.bio;
 
+    console.log(req.body);
+
+
     let statement = await db.prepare(
         "INSERT INTO authors(id, name, bio) VALUES (?, ?, ?)"
     );
@@ -171,6 +264,13 @@ app.post("/add/author", async (req, res) => {
     console.log("Added an author");
     return res.sendStatus(200);
 });
+
+
+//
+//
+// DELETE REQUESTS
+//
+//
 
 app.delete("/del/book", async (req, res) => {
     if (req.body.id) {
@@ -226,6 +326,7 @@ app.delete("/del/author", async (req, res) => {
     
     return res.status(400).json({ error: "Body is missing sections"});
 });
+
 
 
 //
