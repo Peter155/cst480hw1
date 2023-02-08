@@ -34,8 +34,10 @@ function App() {
 		          <option value="">Genre</option>
 		          <option value="romance">romance</option>
 		          <option value="horror">horror</option>
-		          <option value="mystery">fantasy</option>
-		          <option value="fantasy">mystery</option>
+		          <option value="fantasy">fantasy</option>
+		          <option value="mystery">mystery</option>
+              <option value="adventure">adventure</option>
+              <option value="education">education</option>
 	          </select>
           </p>
           <p>
@@ -59,6 +61,38 @@ function App() {
           <AddAuthorButton />
         </div>
         <div>
+          <h5>Edit A Book</h5>
+          <p>
+            <label>Id of book to Edit</label>
+            <input id="editBookID" type="number" />
+          </p>
+          <p>
+            <label>Title</label>
+            <input id="editBookTitle" type="text" />
+          </p>
+          <p>
+            <label>Author ID</label>
+            <input id="editAuthorID" type="number" />
+          </p>
+          <p>
+            <label>Pub Year</label>
+            <input id="editBookPubYear" type="number" />
+          </p>
+          <p>
+            <label>Genre:</label>
+	          <select id="editGenre" name="genre">
+		          <option value="">Genre</option>
+		          <option value="romance">romance</option>
+		          <option value="horror">horror</option>
+		          <option value="fantasy">fantasy</option>
+		          <option value="mystery">mystery</option>
+              <option value="adventure">adventure</option>
+              <option value="education">education</option>
+	          </select>
+          </p>
+          <p><EditBooksButton1 /></p>
+        </div>
+        <div>
           <h5>Search Books</h5>
           <p>
             <label>Genre:</label>
@@ -71,6 +105,14 @@ function App() {
 	          </select>
           </p>
           <p><SearchGenre /></p>
+        </div>
+        <div>
+        <h5>Delete A Book</h5>
+          <p>
+            <label>Id of book to delete</label>
+            <input id="deleteBookID" type="number" />
+          </p>
+          <p><DeleteBookButton /></p>
         </div>
         <GetBooksButton2 />
         <GetAuthorsButton />
@@ -304,6 +346,53 @@ function GetAuthorsButton() {
     <button onClick={handleClick}>Get All Authors</button>
   );
 
+}
+
+function EditBooksButton1() {
+  function handleClick() {
+    var id = (document.getElementById("editBookID") as HTMLInputElement);
+    let title = (document.getElementById("editBookTitle") as HTMLInputElement);
+    let author_id = (document.getElementById("editAuthorID") as HTMLInputElement);
+    let pub_year = (document.getElementById("editBookPubYear") as HTMLInputElement);
+    let genre = (document.getElementById("editGenre") as HTMLSelectElement);
+    let Genre = genre.options[genre.selectedIndex].text;
+    console.log('Clicked!');
+    console.log('id: ' + id.value);
+    fetch("/book", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({id: id.value, author_id: author_id.value, title: title.value, pub_year: pub_year.value, genre: Genre}),
+    }).then(response => {
+      console.log("Response received:", response.status);
+      return response.json();
+    }).catch(error => {
+      console.log(error);
+    });
+  }
+
+  return (
+    <button onClick={handleClick}>Edit the input book</button>
+  );
+}
+
+function DeleteBookButton() {
+  function handleClick() {
+    var id = (document.getElementById("deleteBookID") as HTMLInputElement);
+    console.log('Clicked!');
+    console.log('id: ' + id.value);
+    fetch("/books/"+id.value, {
+      method: "DELETE",
+    }).then(response => {
+      console.log("Response received:", response.status);
+      return response.json();
+    }).catch(error => {
+      console.log(error);
+    });
+  }
+
+  return (
+    <button onClick={handleClick}>Delete the book</button>
+  );
 }
 
 

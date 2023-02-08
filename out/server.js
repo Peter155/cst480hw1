@@ -2,6 +2,7 @@ import express from "express";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import * as url from "url";
+import { z } from "zod";
 let app = express();
 app.use(express.json());
 app.use(express.static("public"));
@@ -15,6 +16,19 @@ let db = await open({
     driver: sqlite3.Database,
 });
 await db.get("PRAGMA foreign_keys = ON");
+//The book and author items
+let bookSchema = z.object({
+    id: z.string().min(1).max(3),
+    title: z.string().min(1).max(20),
+    author_id: z.string().min(1).max(3),
+    pub_year: z.string().min(1).max(4),
+    genre: z.string().min(1).max(10),
+});
+let authorSchema = z.object({
+    id: z.string().min(1).max(3),
+    name: z.string().min(1).max(20),
+    bio: z.string().min(1).max(100),
+});
 // res's type limits what responses this request handler can send
 // it must send either an object with a message or an error
 app.get("/foo", (req, res) => {
@@ -36,10 +50,19 @@ app.delete("/foo", (req, res) => {
 app.get("/setup", async (req, res) => {
     console.log("Setting up");
     await db.all("INSERT INTO authors(id, name, bio) VALUES('1', 'Figginsworth III', 'A traveling gentleman.')");
+    await db.all("INSERT INTO authors(id, name, bio) VALUES('2', 'Peter Wainwright', 'A student who is trying.')");
+    await db.all("INSERT INTO authors(id, name, bio) VALUES('3', 'Galen Long', 'An amazing professor.')");
     await db.all("INSERT INTO books(id, author_id, title, pub_year, genre) VALUES ('1', '1', 'My Fairest Lady', '1866', 'romance')");
     let statement = await db.prepare("INSERT INTO books(id, author_id, title, pub_year, genre) VALUES (?, ?, ?, ?, ?)");
     await statement.bind(["2", "1", "A Travelogue of Tales", "1867", "adventure"]);
     await statement.run();
+    await db.all("INSERT INTO books(id, author_id, title, pub_year, genre) VALUES ('3', '1', 'An Old Book', '1860', 'mystery')");
+    await db.all("INSERT INTO books(id, author_id, title, pub_year, genre) VALUES ('4', '2', 'The Start of Peter', '1999', 'romance')");
+    await db.all("INSERT INTO books(id, author_id, title, pub_year, genre) VALUES ('5', '2', 'The Life of Peter', '2023', 'adventure')");
+    await db.all("INSERT INTO books(id, author_id, title, pub_year, genre) VALUES ('6', '2', 'The Death of Peter', '1999', 'horror')");
+    await db.all("INSERT INTO books(id, author_id, title, pub_year, genre) VALUES ('7', '3', 'Coding for Beginers', '2013', 'education')");
+    await db.all("INSERT INTO books(id, author_id, title, pub_year, genre) VALUES ('8', '3', 'How to Spell Beginners', '2014', 'horror')");
+    await db.all("INSERT INTO books(id, author_id, title, pub_year, genre) VALUES ('9', '3', 'What Could Go Wrong?', '2020', 'horror')");
     return res.sendStatus(200);
 });
 //
@@ -48,44 +71,24 @@ app.get("/setup", async (req, res) => {
 //
 //
 app.get("/all", async (req, res) => {
-    console.log("Waiting...");
-    await sleep(1);
     let authors = await db.all("SELECT * FROM authors");
     console.log("Authors", authors);
-    let books = await db.all("SELECT * FROM books WHERE author_id = '1'");
+    let books = await db.all("SELECT * FROM books");
     console.log("Books", books);
     //res.send("$1", [books]);
     return res.sendStatus(200);
 });
 app.get("/authors/all", async (req, res) => {
-    console.log("Waiting...");
-    await sleep(1);
     let author = await db.all("SELECT * FROM authors");
     console.log("Authors", author);
     return res.json(author);
     //return res.sendStatus(200);
 });
 app.get("/books/all", async (req, res) => {
-    console.log("Waiting...");
-    await sleep(1);
     let books = await db.all("SELECT * FROM books");
-    console.log("Books", books[1]);
+    console.log("Books", books);
     console.log("Books size: ", books.length);
     return res.json(books);
-    //return res.sendStatus(200);
-});
-app.get("/book/id", async (req, res) => {
-    if (!req.query.id) {
-        return res.status(400).json({ error: "Body is missing sections" });
-    }
-    let id = req.query.id;
-    console.log(id);
-    let book = await db.all("SELECT * FROM books WHERE id = ?", id);
-    //await book.bind([id]);
-    //await book.run();
-    console.log("Sent a book");
-    console.log(book);
-    return res.json(book);
     //return res.sendStatus(200);
 });
 app.get("/books/genre", async (req, res) => {
@@ -94,13 +97,37 @@ app.get("/books/genre", async (req, res) => {
     }
     let genre = req.query.genre;
     console.log(genre);
-    let book = await db.all("SELECT * FROM books WHERE genre = ?", genre).catch(error => {
-        console.log(error.errno);
+    try {
+        let book = await db.all("SELECT * FROM books WHERE genre = ?", genre);
+        console.log("Sent a book");
+        console.log(book);
+        let parseResult = bookSchema.safeParse(book[0]);
+        if (!parseResult.success) {
+            return res.status(400).json({ message: "No books in that genre" });
+        }
+        return res.json(book);
+    }
+    catch (error) {
+        console.log(error);
         //let send = {"message": error.response.data.message};
         res.status(400);
-    });
+    }
+    //return res.sendStatus(200);
+});
+app.get("/books/:id", async (req, res) => {
+    if (!req.params.id) {
+        console.log("No body");
+        return res.status(400).json({ error: "Body is missing sections" });
+    }
+    let id = req.params.id;
+    console.log(id);
+    let book = await db.all("SELECT * FROM books WHERE id = ?", id);
     console.log("Sent a book");
     console.log(book);
+    let parseResult = bookSchema.safeParse(book[0]);
+    if (!parseResult.success) {
+        return res.status(400).json({ message: "No book by that id" });
+    }
     return res.json(book);
     //return res.sendStatus(200);
 });
@@ -110,7 +137,7 @@ app.get("/books/genre", async (req, res) => {
 //
 //
 //This is just checking the value are there at the moment, make more advanced next
-app.post("/add/book", async (req, res) => {
+app.post("/book", async (req, res) => {
     if (!req.body.id || !req.body.author_id || !req.body.title || !req.body.pub_year || !req.body.genre) {
         return res.status(400).json({ error: "Body is missing sections" });
     }
@@ -119,19 +146,27 @@ app.post("/add/book", async (req, res) => {
     let title = req.body.title;
     let pub_year = req.body.pub_year;
     let genre = req.body.genre;
+    let parseResult = bookSchema.safeParse(req.body);
+    if (!parseResult.success) {
+        return res.status(400).json({ error: "Book not sent properly" });
+    }
     console.log(req.body);
     let statement = await db.prepare("INSERT INTO books(id, author_id, title, pub_year, genre) VALUES (?, ?, ?, ?, ?)");
     await statement.bind([id, author_id, title, pub_year, genre]);
-    await statement.run().catch(error => {
-        console.log(error.errno);
+    try {
+        await statement.run();
+    }
+    catch (error) {
+        console.log(error);
         //let send = {"message": error.response.data.message};
-        res.status(400);
-    });
+        return res.status(400).json({ error: "Something went wrong" });
+    }
+    ;
     //console.log(title);
     console.log("Added a book");
     return res.sendStatus(200);
 });
-app.post("/add/author", async (req, res) => {
+app.post("/author", async (req, res) => {
     if (!req.body.id || !req.body.name || !req.body.bio) {
         return res.status(400).json({ error: "Body is missing sections" });
     }
@@ -150,22 +185,37 @@ app.post("/add/author", async (req, res) => {
 // DELETE REQUESTS
 //
 //
-app.delete("/del/book", async (req, res) => {
-    if (req.body.id) {
-        let id = req.body.id;
-        let statement = await db.prepare("DELETE FROM books WHERE id = (?)");
-        await statement.bind([id]);
-        await statement.run();
-        console.log("Deleted a book");
-        return res.sendStatus(200);
+app.delete("/all", async (req, res) => {
+    let delBooks = await db.all("DELETE FROM books");
+    let delAuths = await db.all("DELETE FROM authors");
+    return res.sendStatus(200);
+});
+app.delete("/books/:id", async (req, res) => {
+    let id = req.params.id;
+    let book = await db.all("SELECT * FROM books WHERE id = ?", id);
+    console.log("Checking to see if book exsists");
+    console.log(book);
+    let checkBook = bookSchema.safeParse(book[0]);
+    if (!checkBook.success) {
+        return res.status(400).json({ message: "No book by that id" });
     }
+    try {
+        let statement = await db.all("DELETE FROM books WHERE id = ?", id);
+    }
+    catch (error) {
+        console.log(error);
+    }
+    ;
+    console.log("Deleted a book");
+    return res.sendStatus(200);
     return res.status(400).json({ error: "Body is missing sections" });
 });
 //Possibly also delete all books by the author
-app.delete("/del/author", async (req, res) => {
-    if (req.body.id) {
-        let id = req.body.id;
-        let getAuth = await db.prepare("DELETE FROM books WHERE author_id = (?)");
+//Change so you can only delete if all the books are deleted
+app.delete("/authors/:id", async (req, res) => {
+    if (req.params.id) {
+        let id = req.params.id;
+        let getAuth = await db.prepare("DELETE FROM books WHERE author_id = ?");
         await getAuth.bind([id]);
         await getAuth.run();
         let statement = await db.prepare("DELETE FROM authors WHERE id = (?)");
@@ -193,6 +243,47 @@ app.delete("/del/author", async (req, res) => {
         return res.sendStatus(200);
     }*/
     return res.status(400).json({ error: "Body is missing sections" });
+});
+//
+//
+// PUT REQUESTS
+//
+//
+app.put("/book", async (req, res) => {
+    if (!req.body.id || !req.body.author_id || !req.body.title || !req.body.pub_year || !req.body.genre) {
+        return res.status(400).json({ error: "Body is missing sections" });
+    }
+    let id = req.body.id;
+    let author_id = req.body.author_id;
+    let title = req.body.title;
+    let pub_year = req.body.pub_year;
+    let genre = req.body.genre;
+    let parseResult = bookSchema.safeParse(req.body);
+    if (!parseResult.success) {
+        return res.status(400).json({ message: "Book not sent properly" });
+    }
+    console.log(req.body);
+    let book = await db.all("SELECT * FROM books WHERE id = ?", id);
+    console.log("Checking to see if book exsists");
+    console.log(book);
+    let checkBook = bookSchema.safeParse(book[0]);
+    if (!checkBook.success) {
+        return res.status(400).json({ message: "No book by that id" });
+    }
+    console.log(genre);
+    try {
+        //If the book does exsist then edit it
+        let statement = await db.all("UPDATE books SET id = ?, title = ?, author_id = ?, pub_year = ?, genre = ? WHERE id = ?", id, title, author_id, pub_year, genre, id);
+    }
+    catch (error) {
+        console.log(error);
+        //let send = {"message": error.response.data.message};
+        return res.status(400).json(error);
+    }
+    ;
+    //console.log(title);
+    console.log("Edited a book");
+    return res.sendStatus(200);
 });
 //
 // ASYNC/AWAIT EXAMPLE
