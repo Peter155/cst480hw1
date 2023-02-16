@@ -6,7 +6,8 @@
     "watch": "npm run build && tsc-watch --onSuccess \"npm run start\"",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand --rootDir=src",
     "build:deploy": "rimraf out && mkdir out && tsc && (cd front && npm run build)",
-    "test-data": "curl http://localhost:3000/setup"
+    "test-data": "curl http://localhost:3000/setup",
+    "add-logins": "sqlite3 database.db < setup_users.sql"
   },
   "type": "module",
   "dependencies": {
