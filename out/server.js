@@ -3,7 +3,11 @@ import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import * as url from "url";
 import { z } from "zod";
+import * as argon2 from "argon2";
+import cookieParser from "cookie-parser";
+import crypto from "crypto";
 let app = express();
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.static("public"));
 // create database "connection"
@@ -16,6 +20,20 @@ let db = await open({
     driver: sqlite3.Database,
 });
 await db.get("PRAGMA foreign_keys = ON");
+function makeToken() {
+    return crypto.randomBytes(32).toString("hex");
+}
+// e.g. { "z7fsga": { username: "mycoolusername" } }
+let tokenStorage = {};
+let cookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict", // only sent to this domain
+};
+let loginSchema = z.object({
+    username: z.string().min(1),
+    password: z.string().min(1),
+});
 //The book and author items
 let bookSchema = z.object({
     id: z.string().min(1).max(3),
@@ -138,6 +156,9 @@ app.get("/books/:id", async (req, res) => {
 //
 //This is just checking the value are there at the moment, make more advanced next
 app.post("/book", async (req, res) => {
+    if (!authorize(req)) {
+        return res.status(401).json({ message: "You must be logged in for this" });
+    }
     if (!req.body.id || !req.body.author_id || !req.body.title || !req.body.pub_year || !req.body.genre) {
         return res.status(400).json({ error: "Body is missing sections" });
     }
@@ -167,6 +188,9 @@ app.post("/book", async (req, res) => {
     return res.sendStatus(200);
 });
 app.post("/author", async (req, res) => {
+    if (!authorize(req)) {
+        return res.status(401).json({ message: "You must be logged in for this" });
+    }
     if (!req.body.id || !req.body.name || !req.body.bio) {
         return res.status(400).json({ error: "Body is missing sections" });
     }
@@ -186,11 +210,17 @@ app.post("/author", async (req, res) => {
 //
 //
 app.delete("/all", async (req, res) => {
+    if (!authorize(req)) {
+        return res.status(401).json({ message: "You must be logged in for this" });
+    }
     let delBooks = await db.all("DELETE FROM books");
     let delAuths = await db.all("DELETE FROM authors");
     return res.sendStatus(200);
 });
 app.delete("/books/:id", async (req, res) => {
+    if (!authorize(req)) {
+        return res.status(401).json({ message: "You must be logged in for this" });
+    }
     let id = req.params.id;
     let book = await db.all("SELECT * FROM books WHERE id = ?", id);
     console.log("Checking to see if book exsists");
@@ -213,6 +243,9 @@ app.delete("/books/:id", async (req, res) => {
 //Possibly also delete all books by the author
 //Change so you can only delete if all the books are deleted
 app.delete("/authors/:id", async (req, res) => {
+    if (!authorize(req)) {
+        return res.status(401).json({ message: "You must be logged in for this" });
+    }
     if (req.params.id) {
         let id = req.params.id;
         let getAuth = await db.prepare("DELETE FROM books WHERE author_id = ?");
@@ -253,6 +286,9 @@ app.put("/book", async (req, res) => {
     if (!req.body.id || !req.body.author_id || !req.body.title || !req.body.pub_year || !req.body.genre) {
         return res.status(400).json({ error: "Body is missing sections" });
     }
+    if (!authorize(req)) {
+        return res.status(401).json({ message: "You must be logged in for this" });
+    }
     let id = req.body.id;
     let author_id = req.body.author_id;
     let title = req.body.title;
@@ -284,6 +320,84 @@ app.put("/book", async (req, res) => {
     //console.log(title);
     console.log("Edited a book");
     return res.sendStatus(200);
+});
+//
+//
+//Login
+//
+//
+app.post("/api/login", async (req, res) => {
+    let parseResult = loginSchema.safeParse(req.body);
+    if (!parseResult.success) {
+        return res
+            .status(400)
+            .json({ message: "Username or password invalid" });
+    }
+    let { username, password } = parseResult.data;
+    console.log(parseResult.data);
+    console.log(username, password);
+    let info = await db.all("SELECT * FROM users WHERE username = ?", username);
+    console.log(info);
+    // TODO log user in if credentials valid
+    // use argon2 to hash the password
+    // https://github.com/ranisalt/node-argon2
+    // https://expressjs.com/en/api.html#res.cookie
+    // TIP make sure to pass cookieOptions when creating cookie
+    try {
+        const hashPass = await argon2.verify(info[0].password, password);
+        console.log("Got here " + hashPass);
+        if (hashPass) {
+            let token = makeToken();
+            let hold = { tok: { username: username } };
+            tokenStorage[token] = { username: username };
+            return res.status(200).cookie("token", token, cookieOptions).send();
+        }
+        else {
+            return res.sendStatus(400);
+        }
+    }
+    catch (_a) {
+        return res.json({ message: "Login Failed" }).sendStatus(400);
+    }
+    return res.json({ message: "Success" });
+});
+function authorize(req) {
+    console.log("Authorize ran");
+    console.log(req.cookies);
+    let { token } = req.cookies;
+    if (token === undefined) {
+        // already logged out
+        return false;
+    }
+    if (!tokenStorage.hasOwnProperty(token)) {
+        // token invalid
+        return false;
+    }
+    // TODO only allow access if user logged in
+    // by sending error response if they're not
+    return true;
+}
+;
+app.post("/api/logout", async (req, res) => {
+    let { token } = req.cookies;
+    if (token === undefined) {
+        // already logged out
+        return res.sendStatus(401);
+    }
+    if (!tokenStorage.hasOwnProperty(token)) {
+        // token invalid
+        return res.sendStatus(402);
+    }
+    delete tokenStorage[token];
+    return res.clearCookie("token", cookieOptions).send();
+});
+app.get("/api/private", async (req, res) => {
+    if (authorize(req)) {
+        return res.json({ message: "A Private Message" });
+    }
+    else {
+        return res.sendStatus(405);
+    }
 });
 //
 // ASYNC/AWAIT EXAMPLE

@@ -10,6 +10,12 @@ function App() {
     <div className="App">
       <header className="App-header"> 
       <h3>Books Website</h3>
+      <div>
+        <Login />
+      </div>
+      <div>
+        <Logout /><Private />
+      </div>
         <div>
           <h5>Add Book</h5>
           <p>
@@ -44,6 +50,7 @@ function App() {
             <AddBooksButton2 />
           </p>
         </div>
+        <div id="loginMessageAddBook"></div>
         <div>
           <h5>Add Author</h5>
           <p>
@@ -60,6 +67,7 @@ function App() {
           </p>
           <AddAuthorButton />
         </div>
+        <div id="loginMessageAddAuthor"></div>
         <div>
           <h5>Edit A Book</h5>
           <p>
@@ -92,6 +100,7 @@ function App() {
           </p>
           <p><EditBooksButton1 /></p>
         </div>
+        <div id="loginMessageEditBook"></div>
         <div>
           <h5>Search Books</h5>
           <p>
@@ -114,6 +123,7 @@ function App() {
           </p>
           <p><DeleteBookButton /></p>
         </div>
+        <div id="loginMessageDeleteBook"></div>
         <GetBooksButton2 />
         <GetAuthorsButton />
         
@@ -130,6 +140,83 @@ function App() {
         </table>
       </header>
     </div>
+  );
+}
+
+function Login() {
+  function handleClick() {
+    console.log('Clicked!');
+    var username = (document.getElementById("username") as HTMLInputElement);
+    var password = (document.getElementById("password") as HTMLInputElement);
+    fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({username: username.value, password: password.value}),
+    }).then(response => {
+      console.log("Response received:", response.status);
+      return response.json();
+    }).catch(error => {
+      console.log(error);
+    });
+  }
+
+  return (
+    <>
+    <label htmlFor="username">Username:</label>
+                <input
+                    type="text"
+                    id="username"
+                />
+
+                <label htmlFor="password">Password:</label>
+                <input
+                    type="password"
+                    id="password"
+                />
+
+                <button onClick={handleClick}>Log in</button>
+    </>
+  );
+}
+
+function Logout() {
+  function handleClick() {
+    console.log('Clicked!');
+    fetch("/api/logout", {
+      method: "POST",
+    }).then(response => {
+      console.log("Response received:", response.status);
+      return response.json();
+    }).catch(error => {
+      console.log(error);
+    });
+  }
+
+  return (
+    <>
+      <button onClick={handleClick}>Log out</button>
+    </>
+  );
+}
+
+function Private() {
+  function handleClick() {
+    console.log('Clicked!');
+    fetch("/api/private", {
+      method: "GET",
+    }).then(response => {
+      console.log("Response received:", response.status);
+      console.log(response.body)
+      return response.json();
+    }).catch(error => {
+      console.log(error);
+    });
+  }
+
+  return (
+    <>
+      <button onClick={handleClick}>Private</button>
+    </>
   );
 }
 
@@ -165,7 +252,7 @@ function GetBooksButton() {
 function AddBooksButton() {
   function handleClick() {
     console.log('Clicked!');
-    fetch("/add/book", {
+    fetch("/book", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({id: "3", author_id: "1", title: "Please Work", pub_year: "1999", genre: "horror"}),
@@ -192,12 +279,20 @@ function AddBooksButton2() {
     let Genre = genre.options[genre.selectedIndex].text;
     console.log('Clicked!');
     console.log('id: ' + id.value);
-    fetch("/add/book", {
+    fetch("/book", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({id: id.value, author_id: author_id.value, title: title.value, pub_year: pub_year.value, genre: Genre}),
     }).then(response => {
       console.log("Response received:", response.status);
+      let display = document.getElementById("loginMessageAddBook");
+      let loginText
+      if(response.status === 401){
+        loginText = "Must be logged in to do this";
+      } else {
+        loginText = "";
+      }
+      display!.innerHTML = loginText;
       return response.json();
     }).catch(error => {
       console.log(error);
@@ -216,12 +311,20 @@ function AddAuthorButton() {
     let bio = (document.getElementById("authorBio") as HTMLInputElement);
     console.log('Clicked!');
     console.log('id: ' + id.value);
-    fetch("/add/author", {
+    fetch("/author", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({id: id.value, name: name.value, bio: bio.value}),
     }).then(response => {
       console.log("Response received:", response.status);
+      let display = document.getElementById("loginMessageAddAuthor");
+      let loginText
+      if(response.status === 401){
+        loginText = "Must be logged in to do this";
+      } else {
+        loginText = "";
+      }
+      display!.innerHTML = loginText;
       return response.json();
     }).catch(error => {
       console.log(error);
@@ -364,6 +467,14 @@ function EditBooksButton1() {
       body: JSON.stringify({id: id.value, author_id: author_id.value, title: title.value, pub_year: pub_year.value, genre: Genre}),
     }).then(response => {
       console.log("Response received:", response.status);
+      let display = document.getElementById("loginMessageEditBook");
+      let loginText
+      if(response.status === 401){
+        loginText = "Must be logged in to do this";
+      } else {
+        loginText = "";
+      }
+      display!.innerHTML = loginText;
       return response.json();
     }).catch(error => {
       console.log(error);
@@ -384,6 +495,14 @@ function DeleteBookButton() {
       method: "DELETE",
     }).then(response => {
       console.log("Response received:", response.status);
+      let display = document.getElementById("loginMessageDeleteBook");
+      let loginText
+      if(response.status === 401){
+        loginText = "Must be logged in to do this";
+      } else {
+        loginText = "";
+      }
+      display!.innerHTML = loginText;
       return response.json();
     }).catch(error => {
       console.log(error);
