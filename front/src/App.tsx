@@ -152,9 +152,9 @@ function Login() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({username: username.value, password: password.value}),
-    }).then(response => {
-      console.log("Response received:", response.status);
-      return response.json();
+    }).then(response => response.json()).then(data => {
+      console.log("Response received:", data.status);
+      return data.json();
     }).catch(error => {
       console.log(error);
     });
@@ -184,9 +184,9 @@ function Logout() {
     console.log('Clicked!');
     fetch("/api/logout", {
       method: "POST",
-    }).then(response => {
-      console.log("Response received:", response.status);
-      return response.json();
+    }).then(response =>  response.json()).then(data =>  {
+      console.log("Response received:", data.status);
+      return data.json();
     }).catch(error => {
       console.log(error);
     });
@@ -204,10 +204,10 @@ function Private() {
     console.log('Clicked!');
     fetch("/api/private", {
       method: "GET",
-    }).then(response => {
-      console.log("Response received:", response.status);
-      console.log(response.body)
-      return response.json();
+    }).then(response =>  response.json()).then(data => {
+      console.log("Response received:", data.status);
+      console.log(data.body)
+      return data.json();
     }).catch(error => {
       console.log(error);
     });
