@@ -7,6 +7,7 @@ import { stat } from "fs";
 import * as argon2 from "argon2";
 import cookieParser from "cookie-parser";
 import crypto from "crypto";
+import bodyParser from "body-parser";
 
 
 
@@ -14,6 +15,7 @@ let app = express();
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.static("public"));
+app.use(bodyParser.json());
 
 
 // create database "connection"
