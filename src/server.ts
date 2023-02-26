@@ -64,9 +64,7 @@ let authorSchema = z.object({
 
 
 
-app.get('/*', function (req, res) {
-    res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
-});
+
 
 //
 // SQLITE EXAMPLES
@@ -633,4 +631,8 @@ let host = "localhost";
 let protocol = "http";
 app.listen(port, host, () => {
     console.log(`${protocol}://${host}:${port}`);
+});
+
+app.get('/*', function (req, res) {
+    res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
 });

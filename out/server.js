@@ -7,6 +7,7 @@ import * as argon2 from "argon2";
 import cookieParser from "cookie-parser";
 import crypto from "crypto";
 import bodyParser from "body-parser";
+import path from "path";
 let app = express();
 app.use(cookieParser());
 app.use(express.json());
@@ -425,4 +426,7 @@ let host = "localhost";
 let protocol = "http";
 app.listen(port, host, () => {
     console.log(`${protocol}://${host}:${port}`);
+});
+app.get('/*', function (req, res) {
+    res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
 });
