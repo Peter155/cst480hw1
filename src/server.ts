@@ -64,9 +64,9 @@ let authorSchema = z.object({
 
 
 
-/*app.get('/*', function (req, res) {
+app.get('/*', function (req, res) {
     res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
-});*/
+});
 
 //
 // SQLITE EXAMPLES
