@@ -437,9 +437,10 @@ function GetAuthorsButton() {
   function handleClick() {
     console.log('Clicked!');
     fetch("/authors/all").then((response) => {
-      console.log(response.status);
+      console.log("Response recieved: ", response.status);
       return response.json();
   }).then(body => {
+    
     setAuthors(body);
   }).catch(error => {
       console.log(error);

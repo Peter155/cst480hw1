@@ -636,3 +636,15 @@ app.listen(port, host, () => {
 app.get('/*', function (req, res) {
     res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
 });
+
+app.post('/*', function (req, res) {
+    res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
+});
+
+app.put('/*', function (req, res) {
+    res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
+});
+
+app.delete('/*', function (req, res) {
+    res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
+});
