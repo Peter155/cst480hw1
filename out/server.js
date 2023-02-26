@@ -6,10 +6,12 @@ import { z } from "zod";
 import * as argon2 from "argon2";
 import cookieParser from "cookie-parser";
 import crypto from "crypto";
+import bodyParser from "body-parser";
 let app = express();
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.static("public"));
+app.use(bodyParser.json());
 // create database "connection"
 // use absolute path to avoid this issue
 // https://github.com/TryGhost/node-sqlite3/issues/441
@@ -198,9 +200,7 @@ app.post("/author", async (req, res) => {
     let name = req.body.name;
     let bio = req.body.bio;
     console.log(req.body);
-    let statement = await db.prepare("INSERT INTO authors(id, name, bio) VALUES (?, ?, ?)");
-    await statement.bind([id, name, bio]);
-    await statement.run();
+    let statement = await db.all("INSERT INTO authors(id, name, bio) VALUES (?, ?, ?)", id, name, bio);
     console.log("Added an author");
     return res.sendStatus(200);
 });
@@ -393,6 +393,7 @@ app.post("/api/logout", async (req, res) => {
 });
 app.get("/api/private", async (req, res) => {
     if (authorize(req)) {
+        console.log("They are logged in");
         return res.json({ message: "A Private Message" });
     }
     else {

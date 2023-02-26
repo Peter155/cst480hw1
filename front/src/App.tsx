@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import { application } from 'express';
+import { resolve } from 'path';
 //Yah just gonna write everything in here
 //<img src={logo} className="App-logo" alt="logo" />
 

@@ -8,6 +8,7 @@ import * as argon2 from "argon2";
 import cookieParser from "cookie-parser";
 import crypto from "crypto";
 import bodyParser from "body-parser";
+import path from "path";
 
 
 
@@ -60,6 +61,12 @@ let authorSchema = z.object({
     name: z.string().min(1).max(20),
     bio: z.string().min(1).max(100),
 });
+
+
+
+/*app.get('/*', function (req, res) {
+    res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
+});*/
 
 //
 // SQLITE EXAMPLES
@@ -347,11 +354,10 @@ app.post("/author", async (req, res) => {
     console.log(req.body);
 
 
-    let statement = await db.prepare(
-        "INSERT INTO authors(id, name, bio) VALUES (?, ?, ?)"
+    let statement = await db.all(
+        "INSERT INTO authors(id, name, bio) VALUES (?, ?, ?)", id, name, bio
     );
-    await statement.bind([id, name, bio]);
-    await statement.run();
+    
 
     console.log("Added an author");
     return res.sendStatus(200);
@@ -593,6 +599,7 @@ app.post("/api/logout", async (req, res) => {
 
 app.get("/api/private", async (req, res) => {
     if(authorize(req)){
+        console.log("They are logged in")
         return res.json({ message: "A Private Message"});
     } else {
         return res.sendStatus(405);
