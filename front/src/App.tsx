@@ -154,8 +154,8 @@ function Login() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({username: username.value, password: password.value}),
     }).then(response => response.json()).then(data => {
-      console.log("Response received:", data.status);
-      return data.json();
+      console.log("Response received:", data.message);
+      //return data.json();
     }).catch(error => {
       console.log(error);
     });

@@ -337,6 +337,7 @@ app.post("/api/login", async (req, res) => {
     let { username, password } = parseResult.data;
     console.log(parseResult.data);
     console.log(username, password);
+    //add try catch
     let info = await db.all("SELECT * FROM users WHERE username = ?", username);
     console.log(info);
     // TODO log user in if credentials valid
@@ -351,16 +352,16 @@ app.post("/api/login", async (req, res) => {
             let token = makeToken();
             let hold = { tok: { username: username } };
             tokenStorage[token] = { username: username };
-            return res.status(200).cookie("token", token, cookieOptions).send();
+            return res.status(200).cookie("token", token, cookieOptions).json({ message: "Login Success" });
         }
         else {
-            return res.sendStatus(400);
+            return res.status(400).json({ message: "Login Failed" });
         }
     }
     catch (_a) {
         return res.json({ message: "Login Failed" }).sendStatus(400);
     }
-    return res.json({ message: "Success" });
+    //return res.json({ message: "Success" });
 });
 function authorize(req) {
     console.log("Authorize ran");
@@ -428,5 +429,14 @@ app.listen(port, host, () => {
     console.log(`${protocol}://${host}:${port}`);
 });
 app.get('/*', function (req, res) {
+    res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
+});
+app.post('/*', function (req, res) {
+    res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
+});
+app.put('/*', function (req, res) {
+    res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
+});
+app.delete('/*', function (req, res) {
     res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
 });

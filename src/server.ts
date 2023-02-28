@@ -535,6 +535,7 @@ app.post("/api/login", async (req, res) => {
     console.log(parseResult.data);
     console.log(username, password);
 
+    //add try catch
     let info = await db.all("SELECT * FROM users WHERE username = ?", username)
     console.log(info);
     
@@ -551,16 +552,16 @@ app.post("/api/login", async (req, res) => {
             let token = makeToken();
             let hold = { tok: {username: username}}
             tokenStorage[token] = { username: username}
-            return res.status(200).cookie("token", token, cookieOptions).send();
+            return res.status(200).cookie("token", token, cookieOptions).json({message: "Login Success"});
         } else {
-            return res.sendStatus(400);
+            return res.status(400).json({message: "Login Failed"});
         }
     } catch{
         return res.json({message: "Login Failed"}).sendStatus(400);
     }
 
     
-    return res.json({ message: "Success" });
+    //return res.json({ message: "Success" });
 });
 
 function authorize (req: Request) {
