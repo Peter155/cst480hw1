@@ -63,7 +63,7 @@ function App() {
             <input id="authorName" type="text" />
           </p>
           <p>
-            <label>Author ID</label>
+            <label>Author Bio</label>
             <input id="authorBio" type="text" />
           </p>
           <AddAuthorButton />

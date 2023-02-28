@@ -358,7 +358,7 @@ app.post("/author", async (req, res) => {
     
 
     console.log("Added an author");
-    return res.sendStatus(200);
+    return res.status(200).json({message: "Author Added"});
 });
 
 
