@@ -9,6 +9,8 @@ import cookieParser from "cookie-parser";
 import crypto from "crypto";
 import bodyParser from "body-parser";
 import path from "path";
+import { rateLimit } from "express-rate-limit";
+import helmet from "helmet";
 
 
 
@@ -17,6 +19,16 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.static("public"));
 app.use(bodyParser.json());
+app.use(helmet());
+
+const loginLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+})
+
+app.use('/api/', loginLimiter);
 
 
 // create database "connection"
@@ -627,25 +639,27 @@ app.get("/bar", async (req, res: FooResponse) => {
 // curl http://localhost:3000/bar
 
 // run server
-let port = 3000;
-let host = "localhost";
-let protocol = "http";
-app.listen(port, host, () => {
-    console.log(`${protocol}://${host}:${port}`);
-});
+
 
 app.get('/*', function (req, res) {
     res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
 });
 
-app.post('/*', function (req, res) {
-    res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
-});
+// app.post('/*', function (req, res) {
+//     res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
+// });
 
-app.put('/*', function (req, res) {
-    res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
-});
+// app.put('/*', function (req, res) {
+//     res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
+// });
 
-app.delete('/*', function (req, res) {
-    res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
+// app.delete('/*', function (req, res) {
+//     res.sendFile(path.join(__dirname, 'out/public', 'index.html'));
+// });
+
+let port = 3000;
+let host = "localhost";
+let protocol = "http";
+app.listen(port, host, () => {
+    console.log(`${protocol}://${host}:${port}`);
 });
